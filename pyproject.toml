@@ -4,6 +4,13 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["ipykernel", "ipywidgets", "pyspark>=4.1.1"]
+dependencies = [
+    "apache-airflow==2.8.0",
+    "apache-airflow-providers-apache-spark>=4.11.3",
+    "faker>=40.1.2",
+    "ipykernel",
+    "ipywidgets",
+    "pyspark>=4.1.1",
+]
 [dependency-groups]
 dev = ["ruff>=0.8.2", "nbqa>=1.9.1"]
