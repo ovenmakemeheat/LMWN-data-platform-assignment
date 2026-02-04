@@ -15,24 +15,15 @@ from datetime import datetime, timedelta
 def generate_mock_sales_data(num_records=1000):
     """Generate realistic mock sales data using Faker"""
     fake = Faker()
-    fake.seed_instance(42)  # For reproducible data
+    fake.seed_instance(42)
 
     data = []
     start_date = datetime(2025, 1, 1)
 
     for i in range(1, num_records + 1):
-        # Generate realistic customer data
-        customer_name = fake.name()
-        customer_email = fake.email()
-        customer_city = fake.city()
-        customer_country = fake.country()
-
-        # Generate product data
         product_categories = ["Electronics", "Clothing", "Books", "Home", "Sports"]
         product_category = random.choice(product_categories)
-        product_name = fake.catch_phrase()
 
-        # Generate order data with realistic amounts
         if product_category == "Electronics":
             amount = round(random.uniform(50, 2000), 2)
         elif product_category == "Clothing":
@@ -41,54 +32,55 @@ def generate_mock_sales_data(num_records=1000):
             amount = round(random.uniform(10, 50), 2)
         elif product_category == "Home":
             amount = round(random.uniform(30, 500), 2)
-        else:  # Sports
+        else:
             amount = round(random.uniform(15, 300), 2)
 
-        # Generate order date with some time distribution
         days_ago = random.randint(0, 365)
-        order_date = start_date + timedelta(days=days_ago)
-
-        # Generate order status
-        order_status = random.choice(["pending", "completed", "cancelled", "refunded"])
 
         data.append(
             (
                 i,
-                customer_name,
-                customer_email,
-                customer_city,
-                customer_country,
-                product_name,
+                fake.name(),
+                fake.email(),
+                fake.city(),
+                fake.country(),
+                fake.catch_phrase(),
                 product_category,
                 amount,
-                order_date,
-                order_status,
+                start_date + timedelta(days=days_ago),
+                random.choice(["pending", "completed", "cancelled", "refunded"]),
             )
         )
-
     return data
 
 
 def main():
-    # Initialize Spark session with Iceberg configuration
+    # 1. VERSION CONFIGURATION FOR SPARK 4.x
+    # Spark 4.1 uses Scala 2.13. We use the Iceberg 4.0 runtime (compatible with 4.x).
+    ICEBERG_VERSION = "1.6.1"
+    SPARK_MAJOR_VERSION = "4.0"
+    SCALA_VERSION = "2.13"
+
+    iceberg_pkg = f"org.apache.iceberg:iceberg-spark-runtime-{SPARK_MAJOR_VERSION}_{SCALA_VERSION}:{ICEBERG_VERSION}"
+    # Using a newer Hadoop-AWS jar compatible with Spark 4.x environments
+    aws_pkg = "org.apache.hadoop:hadoop-aws:3.4.0"
+
+    # 2. INITIALIZE SPARK SESSION
     spark = (
-        SparkSession.builder.appName("Iceberg ETL with Faker")
+        SparkSession.builder.appName("Iceberg ETL Spark 4.1")
+        .config("spark.jars.packages", f"{iceberg_pkg},{aws_pkg}")
         .config(
             "spark.sql.extensions",
             "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
         )
-        .config(
-            "spark.sql.catalog.spark_catalog",
-            "org.apache.iceberg.spark.SparkSessionCatalog",
-        )
-        .config("spark.sql.catalog.spark_catalog.type", "hive")
+        # Define 'local' catalog using Hadoop for a local directory warehouse
         .config("spark.sql.catalog.local", "org.apache.iceberg.spark.SparkCatalog")
         .config("spark.sql.catalog.local.type", "hadoop")
-        .config("spark.sql.catalog.local.warehouse", "s3a://warehouse/")
+        .config("spark.sql.catalog.local.warehouse", "./iceberg_warehouse")
         .getOrCreate()
     )
 
-    # Define schema for the sales data
+    # Define schema
     schema = StructType(
         [
             StructField("order_id", IntegerType(), False),
@@ -104,32 +96,23 @@ def main():
         ]
     )
 
-    print("Generating mock sales data...")
+    print("--- Generating Data ---")
     mock_data = generate_mock_sales_data(1000)
-
-    print(f"Generated {len(mock_data)} records")
-
-    # Create DataFrame with mock data
     df = spark.createDataFrame(mock_data, schema)
 
-    # Show sample data
-    print("Sample data:")
-    df.show(5, truncate=False)
-    df.printSchema()
+    print("--- Writing to Iceberg ---")
+    # We must use the 'local' catalog prefix defined in the config
+    spark.sql("CREATE DATABASE IF NOT EXISTS local.demo")
 
-    # Create database if it doesn't exist
-    spark.sql("CREATE DATABASE IF NOT EXISTS demo")
+    # Write the data
+    df.writeTo("local.demo.sales").createOrReplace()
 
-    # Write data to Iceberg table
-    print("Writing data to Iceberg table...")
-    df.writeTo("demo.sales").createOrReplace()
+    print("--- Success! Table Details ---")
+    # Verify by querying the table
+    spark.sql("SELECT COUNT(*) as total_records FROM local.demo.sales").show()
 
-    # Verify the table was created
-    print("Table created successfully!")
-    spark.sql("SELECT COUNT(*) as total_records FROM demo.sales").show()
-
-    # Show table properties
-    spark.sql("DESCRIBE EXTENDED demo.sales").show(truncate=False)
+    # Inspect Iceberg Metadata
+    spark.sql("SELECT * FROM local.demo.sales.snapshots").show(truncate=False)
 
     spark.stop()
 

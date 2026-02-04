@@ -77,7 +77,3 @@ uv add pyspark
 ```bash
 uv run python src/item1.py
 ```
-
-## License
-
-This project is licensed under the MIT License.

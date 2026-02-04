@@ -10,7 +10,7 @@ from pyspark.sql.types import (
     TimestampType,
     LongType,
 )
-from pyspark.sql.functions import col, explode_outer
+from pyspark.sql.functions import col
 
 
 schema = StructType(
