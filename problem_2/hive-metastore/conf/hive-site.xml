@@ -20,7 +20,12 @@
   </property>
 
   <property>
-    <name>datanucleus.schema.autoCreateAll</name>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.schema.verification</name>
     <value>true</value>
   </property>
 </configuration>

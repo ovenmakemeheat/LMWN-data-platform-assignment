@@ -1,3 +1,5 @@
+.PHONY: up down etl trino
+
 up:
 	docker compose up -d --build
 
