@@ -6,7 +6,8 @@ RUN pip install --no-cache-dir \
     "apache-airflow-providers-apache-spark" \
     "apache-airflow-providers-postgres" \
     "boto3" \
-    "faker"
+    "faker" \
+    "connexion[swagger-ui]"
 
 COPY --chown=airflow:airflow airflow.cfg /opt/airflow/airflow.cfg
 
