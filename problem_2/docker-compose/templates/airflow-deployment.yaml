@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Users\Gunte\scoop\apps\kompose\current\kompose.exe convert --chart
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: airflow
+  name: airflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: airflow
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Users\Gunte\scoop\apps\kompose\current\kompose.exe convert --chart
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: airflow
+    spec:
+      containers:
+        - args:
+            - airflow
+            - standalone
+          image: airflow
+          livenessProbe:
+            exec:
+              command:
+                - curl
+                - -f
+                - http://localhost:8080/health
+            failureThreshold: 3
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+          name: airflow
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etl
+              name: airflow-cm1
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            name: airflow-cm1
+          name: airflow-cm1

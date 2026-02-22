@@ -1,0 +1,26 @@
+minio:
+  image: minio/minio
+  rootUser: minio
+  rootPassword: minio123
+  bucket: warehouse
+
+postgres:
+  image: postgres:13
+  db: metastore
+  user: hive
+  password: hive123
+
+trino:
+  image: trinodb/trino:latest
+
+airflow:
+  image: airflow:latest
+
+spark:
+  image: spark:latest
+
+grafana:
+  image: grafana/grafana:latest
+
+prometheus:
+  image: prom/prometheus:latest

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark
+  template:
+    metadata:
+      labels:
+        app: spark
+    spec:
+      initContainers:
+        - name: wait-for-minio
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z minio 9000; do echo waiting for minio; sleep 2; done"]
+      containers:
+        - name: spark
+          image: {{ .Values.spark.image }}
+          volumeMounts:
+            - name: etl
+              mountPath: /etl
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "echo ok"]
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "echo ok"]
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: etl
+          emptyDir: {}
