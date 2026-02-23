@@ -9,37 +9,112 @@ services:
   minio:
     image: minio/minio
     container_name: minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+      MINIO_DOMAIN: minio
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
+      
+    networks:
+      iceberg_net:
+        aliases:
+          - warehouse.minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
 
   minio-init:
     image: minio/mc
+    container_name: mc
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5 &&
-      mc alias set local http://minio:9000 ${MINIO_USER} ${MINIO_PASSWORD} &&
-      mc mb -p local/warehouse
-      "
+    networks:
+      iceberg_net:
     environment:
-      MINIO_ROOT_USER: ${MINIO_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      AWS_REGION: us-east-1
+    entrypoint: |
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://minio:9000 ${MINIO_USER} ${MINIO_PASSWORD}) do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc rm -r --force minio/warehouse || true;
+      /usr/bin/mc mb minio/warehouse;
+      /usr/bin/mc policy set public minio/warehouse;
+      tail -f /dev/null 
+      "
+
+  # REF: https://iceberg.apache.org/spark-quickstart/#docker-compose
+  # https://medium.com/@stefentaime_10958/my-adventure-with-apache-iceberg-migrating-a-local-hive-data-warehouse-poc-b494a50a04b5
+  rest:
+    image: apache/iceberg-rest-fixture
+    container_name: iceberg-rest
+    networks:
+      iceberg_net:
+    ports:
+      - "8181:8181"
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      AWS_REGION: us-east-1
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+
+  spark-iceberg:
+    image: tabulario/spark-iceberg
+    container_name: spark-iceberg
+    build: ./spark/
+    networks:
+      iceberg_net:
+    depends_on:
+      - rest
+      - minio
+    volumes:
+      - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./spark/warehouse:/home/iceberg/warehouse
+      - ./spark/notebooks:/home/iceberg/notebooks/notebooks
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      AWS_REGION: us-east-1
+    ports:
+      - "8888:8888"
+      - "10000:10000"
+      - "10001:10001"
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "echo ok"]
+
+  airflow:
+    build: ./airflow
+    container_name: airflow
+    networks:
+      iceberg_net:
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./etl:/etl
+    depends_on:
+      spark-iceberg:
+        condition: service_healthy
+    command: airflow standalone 
+    # command: airflow scheduler -D & airflow webserver -p 8090 -D
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"] 
 
   metastore-db:
     image: postgres:13
     container_name: metastore-db
+    networks:
+      iceberg_net:
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -51,6 +126,8 @@ services:
   hive-metastore:
     image: apache/hive:3.1.3
     container_name: hive-metastore
+    networks:
+      iceberg_net:
     depends_on:
       metastore-db:
         condition: service_healthy
@@ -78,10 +155,15 @@ services:
   trino:
     image: trinodb/trino:latest
     container_name: trino
+    networks:
+      iceberg_net:
     ports:
       - "8080:8080"
     volumes:
       - ./trino/catalog:/etc/trino/catalog
+      # - ./trino/config.properties:/etc/trino/config.properties:ro
+      # - ./trino/jvm.config:/etc/trino/jvm.config:ro
+      # - ./trino/node.properties:/etc/trino/node.properties:ro
     depends_on:
       hive-metastore:
         # condition: service_healthy
@@ -90,38 +172,10 @@ services:
       <<: *healthcheck-defaults
       test: ["CMD", "curl", "-f", "http://localhost:8080/v1/info"]
 
-  spark:
-    build: ./spark
-    container_name: spark
-    volumes:
-      - ./etl:/etl
-    depends_on:
-      # hive-metastore:
-      #   condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      <<: *healthcheck-defaults
-      test: ["CMD-SHELL", "echo ok"]
-
-  airflow:
-    build: ./airflow
-    container_name: airflow
-    ports:
-      - "8081:8080"
-    volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - ./etl:/etl
-    depends_on:
-      spark:
-        condition: service_healthy
-    command: airflow standalone
-    healthcheck:
-      <<: *healthcheck-defaults
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-
   prometheus:
     image: prom/prometheus:latest
+    networks:
+      iceberg_net:
     ports:
       - "9090:9090"
     volumes:
@@ -133,6 +187,8 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    networks:
+      iceberg_net:
     ports:
       - "3000:3000"
     volumes:
@@ -150,3 +206,8 @@ volumes:
   minio-data:
   prometheus-data:
   grafana-data:
+
+networks:
+  iceberg_net:
+    driver: bridge
+    name: hive-iceberg_net 

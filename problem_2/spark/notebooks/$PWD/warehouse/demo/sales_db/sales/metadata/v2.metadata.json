@@ -1,0 +1,148 @@
+{
+  "format-version" : 2,
+  "table-uuid" : "b2fa1099-48c1-4cef-aefa-3f2aee0c078e",
+  "location" : "$PWD/warehouse/demo/sales_db/sales",
+  "last-sequence-number" : 2,
+  "last-updated-ms" : 1771829778531,
+  "last-column-id" : 10,
+  "current-schema-id" : 0,
+  "schemas" : [ {
+    "type" : "struct",
+    "schema-id" : 0,
+    "fields" : [ {
+      "id" : 1,
+      "name" : "order_id",
+      "required" : false,
+      "type" : "int"
+    }, {
+      "id" : 2,
+      "name" : "customer_name",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 3,
+      "name" : "customer_email",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 4,
+      "name" : "customer_city",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 5,
+      "name" : "customer_country",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 6,
+      "name" : "product_name",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 7,
+      "name" : "product_category",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 8,
+      "name" : "amount",
+      "required" : false,
+      "type" : "double"
+    }, {
+      "id" : 9,
+      "name" : "order_date",
+      "required" : false,
+      "type" : "timestamptz"
+    }, {
+      "id" : 10,
+      "name" : "order_status",
+      "required" : false,
+      "type" : "string"
+    } ]
+  } ],
+  "default-spec-id" : 0,
+  "partition-specs" : [ {
+    "spec-id" : 0,
+    "fields" : [ ]
+  } ],
+  "last-partition-id" : 999,
+  "default-sort-order-id" : 0,
+  "sort-orders" : [ {
+    "order-id" : 0,
+    "fields" : [ ]
+  } ],
+  "properties" : {
+    "owner" : "root",
+    "write.parquet.compression-codec" : "zstd"
+  },
+  "current-snapshot-id" : 3438309255227403268,
+  "refs" : {
+    "main" : {
+      "snapshot-id" : 3438309255227403268,
+      "type" : "branch"
+    }
+  },
+  "snapshots" : [ {
+    "sequence-number" : 1,
+    "snapshot-id" : 6664706160060697349,
+    "timestamp-ms" : 1771829611027,
+    "summary" : {
+      "operation" : "append",
+      "spark.app.id" : "local-1771829551481",
+      "added-data-files" : "16",
+      "added-records" : "1000",
+      "added-files-size" : "126604",
+      "changed-partition-count" : "1",
+      "total-records" : "1000",
+      "total-files-size" : "126604",
+      "total-data-files" : "16",
+      "total-delete-files" : "0",
+      "total-position-deletes" : "0",
+      "total-equality-deletes" : "0",
+      "engine-version" : "3.5.5",
+      "app-id" : "local-1771829551481",
+      "engine-name" : "spark",
+      "iceberg-version" : "Apache Iceberg 1.8.1 (commit 9ce0fcf0af7becf25ad9fc996c3bad2afdcfd33d)"
+    },
+    "manifest-list" : "$PWD/warehouse/demo/sales_db/sales/metadata/snap-6664706160060697349-1-1f7817a4-2ac8-4737-a278-92aa286c9f38.avro",
+    "schema-id" : 0
+  }, {
+    "sequence-number" : 2,
+    "snapshot-id" : 3438309255227403268,
+    "timestamp-ms" : 1771829778531,
+    "summary" : {
+      "operation" : "append",
+      "spark.app.id" : "local-1771829551481",
+      "added-data-files" : "16",
+      "added-records" : "1000",
+      "added-files-size" : "126604",
+      "changed-partition-count" : "1",
+      "total-records" : "1000",
+      "total-files-size" : "126604",
+      "total-data-files" : "16",
+      "total-delete-files" : "0",
+      "total-position-deletes" : "0",
+      "total-equality-deletes" : "0",
+      "engine-version" : "3.5.5",
+      "app-id" : "local-1771829551481",
+      "engine-name" : "spark",
+      "iceberg-version" : "Apache Iceberg 1.8.1 (commit 9ce0fcf0af7becf25ad9fc996c3bad2afdcfd33d)"
+    },
+    "manifest-list" : "$PWD/warehouse/demo/sales_db/sales/metadata/snap-3438309255227403268-1-e56581c1-50be-402a-9ff6-b4a105fd6b92.avro",
+    "schema-id" : 0
+  } ],
+  "statistics" : [ ],
+  "partition-statistics" : [ ],
+  "snapshot-log" : [ {
+    "timestamp-ms" : 1771829611027,
+    "snapshot-id" : 6664706160060697349
+  }, {
+    "timestamp-ms" : 1771829778531,
+    "snapshot-id" : 3438309255227403268
+  } ],
+  "metadata-log" : [ {
+    "timestamp-ms" : 1771829611027,
+    "metadata-file" : "$PWD/warehouse/demo/sales_db/sales/metadata/v1.metadata.json"
+  } ]
+}

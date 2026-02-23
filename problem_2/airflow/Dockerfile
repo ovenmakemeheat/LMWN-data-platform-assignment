@@ -9,6 +9,10 @@ RUN pip install --no-cache-dir \
     "faker" \
     "connexion[swagger-ui]"
 
+RUN airflow db migrate
+
+RUN airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com
+
 COPY --chown=airflow:airflow airflow.cfg /opt/airflow/airflow.cfg
 
 ENV AIRFLOW__CORE__LOAD_EXAMPLES=False

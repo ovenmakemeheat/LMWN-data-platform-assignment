@@ -6,6 +6,9 @@ scrape_configs:
     static_configs:
       - targets: ["trino:8080"]
 
-  - job_name: "spark"
+  - job_name: spark
+    metrics_path: /metrics/prometheus
     static_configs:
-      - targets: ["spark:4040"]
+      - targets:
+          - spark-iceberg:4040
+    
