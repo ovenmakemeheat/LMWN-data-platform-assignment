@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trino
+  template:
+    metadata:
+      labels:
+        app: trino
+    spec:
+      initContainers:
+        - name: wait-for-hive-metastore
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z hive-metastore 9083; do echo waiting for hive-metastore; sleep 2; done"]
+      containers:
+        - name: trino
+          image: {{ .Values.trino.image }}
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: trino-catalog
+              mountPath: /etc/trino/catalog
+          livenessProbe:
+            httpGet:
+              path: /v1/info
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/info
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: trino-catalog
+          configMap:
+            name: trino-catalog-config
